@@ -78,7 +78,7 @@ As illustrated below, a parent span is created for the overall playback session.
 
 ```mermaid
 flowchart TB
-    subgraph WebApp
+    subgraph Player
     TVP[Trace:Playback]-->TVS[Trace:GetSegment.N]
     subgraph VideoJS
     TVS-->TNS[Trace:GetSegment.N]
