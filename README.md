@@ -17,38 +17,15 @@ This is an exemplary project intended to showcase how:
 * Use of a unified Tracing and Metrics observability solution (Elasticsearch APM) enables a wealth of rich visualization, machine learning, and alerting tools for observing user video playback
 
 ```mermaid
-sequenceDiagram
-    actor U as User
-    participant P as Player (Video.js)
-    participant S as Content Server (NGINX)
-    participant C as OpenTelemetry Collector
-    participant A as Elastic APM
-    U->>P: Play
-    P->>P: [Start Trace] Playback
-    activate P
-    P->>C: Metrics(Start) / OTLP
-    C->>A: Metrics(Start) / OTLP
-    loop Get ABR Segments
-    P->>P: [Start Trace] GET
-    activate P
-    P->>S: GET Segment / HTTPS
-    S->>S: [Start Trace] GET
-    activate S
-    S->>P: ABR Segment / HTTPS
-    S->>C: Traces(GET) / OTLP
-    deactivate S
-    C->>A: Traces(GET) / OTLP
-    P->>C: Traces(GET) / OTLP
-    deactivate P
-    C->>A: Traces(GET) / OTLP
-    P->>C: Metrics(Tracking) / OTLP
-    C->>A: Metrics(Tracking) / OTLP
+flowchart TB
+    subgraph Backend
+    NGINX == OTLP ==> OTC[OpenTelemetry Collector]
+    OTC == OTLP ==> EA[Elastic APM]
     end
-    P->>C: Metrics(Performance) / OTLP
-    C->>A: Metrics(Performance) / OTLP
-    P->>C: Traces(Playback) / OTLP
-    deactivate P
-    C->>A: Traces(Playback) / OTLP
+    subgraph Frontend
+    Video.js == HLS ==> NGINX
+    Video.js == OTLP ==> OTC[OpenTelemetry Collector]
+    end
 ```
 
 # Getting Started
@@ -169,7 +146,49 @@ The resulting graph should look something like the following:
 
 # Engineering Notes
 
+## Data Flow
+
+
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant P as Player (Video.js)
+    participant S as Content Server (NGINX)
+    participant C as OpenTelemetry Collector
+    participant A as Elastic APM
+    U->>P: Play
+    P->>P: [Start Trace] Playback
+    activate P
+    P->>C: Metrics(Start) / OTLP
+    C->>A: Metrics(Start) / OTLP
+    loop Get ABR Segments
+    P->>P: [Start Trace] GET
+    activate P
+    P->>S: GET Segment / HTTPS
+    S->>S: [Start Trace] GET
+    activate S
+    S->>P: ABR Segment / HTTPS
+    S->>C: Traces(GET) / OTLP
+    deactivate S
+    C->>A: Traces(GET) / OTLP
+    P->>C: Traces(GET) / OTLP
+    deactivate P
+    C->>A: Traces(GET) / OTLP
+    P->>C: Metrics(Tracking) / OTLP
+    C->>A: Metrics(Tracking) / OTLP
+    end
+    P->>C: Metrics(Performance) / OTLP
+    C->>A: Metrics(Performance) / OTLP
+    P->>C: Traces(Playback) / OTLP
+    deactivate P
+    C->>A: Traces(Playback) / OTLP
+```
+
+## videojs-event-tracking
+
 I used [videojs-event-tracking](https://github.com/spodlecki/videojs-event-tracking) as an "out of box" means of obtaining periodic playback events and statistics from [Video.js](https://videojs.com). This presented an interesting challenge: this plugin pushes statistics (a combination of counters and gauges) to a callback at the 25%, 50%, 75%, and 100% playout positions. The [OpenTelemetry Metrics API](https://opentelemetry.io/docs/reference/specification/metrics/api/) only supports Observable (async) Gauges. An Observable (async) gauge is generally used to instantaneously sample a data point (rather than to push a data point on-demand). This poses a problem, however, if you are interfacing against an existing library that itself pushes out metrics and events on specific, periodic intervals. To work around this interface conflict, I use a global variable to store the latest set of pushed metrics from videojs-event-tracking, which I then subsequently (ideally immediately) observe using OpenTelemetry. That presented the next challenge: the OpenTelemetry Metrics SDK comes with a PeriodicExportingMetricReader designed to observe a Gauge on regular, periodic intervals. In my case, however, I wanted to command OpenTelemetry to immediately observe a gauge, and further, to not observe that gauge again until videojs-event-tracking pushed a new set of values. To that end, I forked the existing [PeriodicExportingMetricReader](https://github.com/open-telemetry/opentelemetry-js/blob/main/experimental/packages/opentelemetry-sdk-metrics-base/src/export/PeriodicExportingMetricReader.ts) to create a new [OneShotExportingMetricReader](https://github.com/ty-elastic/videojs_observability/blob/main/src/OneShotExportingMetricReader.js) which, as the name implies, can be commanded (via a `forceFlush`) to immediately observe a set of counters and gauges exactly once per flush. Is there a better way to do this? Obviously, we could write our own Video.js plugin better suited for asynchronous observation. If there exists a better way to observe existing gauges which are 'pushed' to an application with OpenTelemetry, I'm all ears!
+
+## instrumentation-xml-http-request
 
 I also needed to coax Video.js into emitting OpenTelemetry Tracing during ABR segment fetches. I was able to use [instrumentation-xml-http-request](https://github.com/open-telemetry/opentelemetry-js/tree/main/experimental/packages/opentelemetry-instrumentation-xml-http-request) to auto-instrument these requests, though I immediately ran into an issue: you need to set the [Context](https://opentelemetry.io/docs/instrumentation/js/api/context/) for Tracing such that OpenTelemetry knows if a given request is a new parent span, or if it is a nested child span (e.g., part of my overall playback span). This presents a challenge since the Video.js ABR segment fetch happens asynchronously deep within the Video.js library. Since I knew instrumentation-xml-http-request already hooks XHR requests, I decided to hook `_createspan` within instrumentation-xml-http-request such that I could set the appropriate context before a span is created.
 
@@ -186,6 +205,8 @@ xhrInstrumentation._createspan = (xhr, url, method) => {
   }
 }
 ```
+
+## Attribute Propagation
 
 Finally, I wanted to propagate a few attributes across the distributed tracing between the front-end and the back-end. Ideally, this is accomplished using [Baggage](https://opentelemetry.io/docs/instrumentation/js/api/context/). At present, however, it appears the [NGINX OpenTelemetry module](https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx) does not yet support Baggage. As a workaround, I used the `player.tech().vhs.xhr.beforeRequest` hook available within [Video.js VHS](https://github.com/videojs/http-streaming#vhsxhr) to explicitly add several contextual headers to each ABR segment fetch which I could in turn retrieve and set as OpenTelemetry attributes from within NGINX:
 
