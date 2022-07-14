@@ -10,10 +10,10 @@
 ---
 
 This is an exemplary project intended to showcase how:
-* [OpenTelemetry](https://opentelemetry.io) can be used to instrument existing front-end libraries or applications with metrics and tracing
-* OpenTelemetry can be used to instrument distributed tracing and metrics across front-end requests and back-end services
+* [OpenTelemetry](https://opentelemetry.io) can be used to instrument existing frontend libraries or applications with metrics and tracing
+* OpenTelemetry can be used to instrument distributed tracing and metrics across frontend requests and backend services
 * Tracing, conceptually, can be used (abused?) in video players to observe end-to-end adaptive bitrate behavior (e.g., segment fetch) over the lifecycle of playback
-* OpenTelemetry can be practically used with front-end JavaScript, back-end NGINX, and [Elasticsearch APM](https://www.elastic.co/observability/application-performance-monitoring) to instrument a real-world use case of moderate complexity
+* OpenTelemetry can be practically used with frontend JavaScript, backend NGINX, and [Elasticsearch APM](https://www.elastic.co/observability/application-performance-monitoring) to instrument a real-world use case of moderate complexity
 * Use of a unified Tracing and Metrics observability solution (Elasticsearch APM) enables a wealth of rich visualization, machine learning, and alerting tools for observing user video playback
 
 ```mermaid
@@ -60,7 +60,7 @@ flowchart TB
 2. [Launch Kibana on your Elastic stack](https://cloud.elastic.co/home)
 3. Navigate to `/app/discover` on your Kibana instance
 4. Ensure `traces-apm*,...` is selected as your data view
-5. Ensure new trace and metric records are being received from both the front-end player as well as the nginx back-end
+5. Ensure new trace and metric records are being received from both the frontend player as well as the nginx backend
 
 # Motivation
 
@@ -72,7 +72,7 @@ With the recent availability of [native OpenTelemetry support in Elastic's APM](
 
 As an aside, I also am a big proponent of relegating the ubiquitous "log file" (arguably back) to a debugging role rather than carrying production metrics. Logging is a fragile and inefficient way to record data. Given the historical lack of good cross-language, cross-platform, open-standards for transporting metrics and events, logging has generally carried the torch for production metrics. Fortunately, with the advent of OpenTelemetry, we are starting to see industry adoption of formal, standardized mechanisms to convey observability (see [NGINX's support for OpenTelemetry](https://www.nginx.com/blog/integrating-opentelemetry-modern-apps-reference-architecture-progress-report/)).
 
-Finally, I found myself wondering if it would make sense to model a user's video playback session as an overarching parent span with individual ABR segment retrievals as linked child spans (I have not seen this done elsewhere). Modeling a playback session as an overall Trace provides a nice means of associating all of the subsequent HTTPS GETs (both from a front-end and a back-end perspective) with a user's overall playback session. Moreover, it allows you to avail yourself of the rich feature set offered by a distributed APM tracing solution (e.g., tail-based sampling, events, correlation with metrics, correlation between front-end and back-end requests) without resorting to bespoke means of association.
+Finally, I found myself wondering if it would make sense to model a user's video playback session as an overarching parent span with individual ABR segment retrievals as linked child spans (I have not seen this done elsewhere). Modeling a playback session as an overall Trace provides a nice means of associating all of the subsequent HTTPS GETs (both from a frontend and a backend perspective) with a user's overall playback session. Moreover, it allows you to avail yourself of the rich feature set offered by a distributed APM tracing solution (e.g., tail-based sampling, events, correlation with metrics, correlation between frontend and backend requests) without resorting to bespoke means of association.
 
 As illustrated below, a parent span is created for the overall playback session. Each XHR request within Video.js VHS for an ABR segment becomes a child of that overarching playback span. Each of those Video.js segment request spans in turn creates a corresponding child span within NGINX.
 
@@ -96,26 +96,26 @@ flowchart TB
 1. Start video playback by navigating to [http://127.0.0.1:8090/](http://127.0.0.1:8090/)
 2. [Launch Kibana on your Elastic stack](https://cloud.elastic.co/home)
 3. Navigate to `/app/apm` on your Kibana instance
-4. Select `APM` > `Service Map` to see the linkage between the front-end (videojs-player) and the backend (nginx-proxy)
+4. Select `APM` > `Service Map` to see the linkage between the frontend (videojs-player) and the backend (nginx-proxy)
 
 <img src="img/services.png"/>
 
-In our trivial example, the services mapped out as expected. You can imagine chaining other operations onto the NGINX back-end side of the ABR segment fetch (e.g., authorization) which could also be traced and linked to APM.
+In our trivial example, the services mapped out as expected. You can imagine chaining other operations onto the NGINX backend side of the ABR segment fetch (e.g., authorization) which could also be traced and linked to APM.
 
 ## Tracing / Traces
 
 1. Start video playback by navigating to [http://127.0.0.1:8090/](http://127.0.0.1:8090/)
 2. [Launch Kibana on your Elastic stack](https://cloud.elastic.co/home)
 3. Navigate to `/app/apm` on your Kibana instance
-4. Select `APM` > `Traces` > `play` to see the linkage between the front-end (videojs-player) and the backend (nginx-proxy)
+4. Select `APM` > `Traces` > `play` to see the linkage between the frontend (videojs-player) and the backend (nginx-proxy)
 
 <img src="img/trace.png"/>
 
-Our sample video is truncated to 30s, comprised of 3 ~10s segments. Note that we can easily visualize the timing of the individual Video.js ABR segment fetch operations (`HTTP GET`) as part of the overall `play` trace. Note further than we further chain the NGINX proxy operation for each segment as a child of each Video.js ABR segment fetch operation. Immediately we can see that (as expected), the vast majority of the latency in delivering ABR segments to the front-end is a function of our proxy operation.
+Our sample video is truncated to 30s, comprised of 3 ~10s segments. Note that we can easily visualize the timing of the individual Video.js ABR segment fetch operations (`HTTP GET`) as part of the overall `play` trace. Further, we chain tracing of the NGINX proxy operation for each segment as a child of each Video.js ABR segment fetch operation. Immediately we can see that (as expected), the vast majority of the latency in delivering ABR segments to the frontend is a function of our proxy operation.
 
 ## Tracing / Maps
 
-If you can put your back-end on the public Internet for testing, `client.ip` in your traces will be populated with a valid public IP, which in turn can be reverse geocoded.
+If you can put your backend on the public Internet for testing, `client.ip` in your traces will be populated with a valid public IP, which in turn can be reverse geocoded.
 
 1. Start video playback by navigating to [http://127.0.0.1:8090/](http://127.0.0.1:8090/)
 2. [Launch Kibana on your Elastic stack](https://cloud.elastic.co/home)
@@ -208,7 +208,7 @@ xhrInstrumentation._createspan = (xhr, url, method) => {
 
 ## Attribute Propagation
 
-Finally, I wanted to propagate a few attributes across the distributed tracing between the front-end and the back-end. Ideally, this is accomplished using [Baggage](https://opentelemetry.io/docs/instrumentation/js/api/context/). At present, however, it appears the [NGINX OpenTelemetry module](https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx) does not yet support Baggage. As a workaround, I used the `player.tech().vhs.xhr.beforeRequest` hook available within [Video.js VHS](https://github.com/videojs/http-streaming#vhsxhr) to explicitly add several contextual headers to each ABR segment fetch which I could in turn retrieve and set as OpenTelemetry attributes from within NGINX:
+Finally, I wanted to propagate a few attributes across the distributed tracing between the frontend and the backend. Ideally, this is accomplished using [Baggage](https://opentelemetry.io/docs/instrumentation/js/api/context/). At present, however, it appears the [NGINX OpenTelemetry module](https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx) does not yet support Baggage. As a workaround, I used the `player.tech().vhs.xhr.beforeRequest` hook available within [Video.js VHS](https://github.com/videojs/http-streaming#vhsxhr) to explicitly add several contextual headers to each ABR segment fetch which I could in turn retrieve and set as OpenTelemetry attributes from within NGINX:
 
 *src/index.js:*
 ```
@@ -232,7 +232,7 @@ Here are some ideas on ways to further improve this exemplary demonstration:
 * Author a Video.js plugin that instruments more of the player functionality with a better asynchronous observability model
 * Use Elastic Machine Learning to detect anomalies in the captured metrics
 * Build out a dashboard of KPIs in Kibana
-* Instrument and integrate tracing and metrics from additional back-end microservices that comprise video playback sessions (e.g., authorization)
+* Instrument and integrate tracing and metrics from additional backend microservices that comprise video playback sessions (e.g., authorization)
 
 # FAQ
 
@@ -256,7 +256,7 @@ This demo is, of course, a toy meant to showcase the art of the possible using b
 
 ### ***Can OpenTelemetry Agents send traces and metrics directly to Elastic APM without using an OpenTelemetry Collector?***
 
-Yes, this should be possible, though it is complicated by authentication. You obviously don't want to embed a bearer token in a web-based front-end application. Elastic APM does support anonymous agents (for [RUM](https://www.elastic.co/guide/en/apm/guide/current/apm-rum.html)), though I'm not certain that will work with off-the-shelf OpenTelemetry OTLP/HTTP agents. Additionally, I don't believe the current version of the [NGINX OpenTelemetry module](https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx) supports bearer token authentication.
+Yes, this should be possible, though it is complicated by authentication. You obviously don't want to embed a bearer token in a web-based frontend application. Elastic APM does support anonymous agents (for [RUM](https://www.elastic.co/guide/en/apm/guide/current/apm-rum.html)), though I'm not certain that will work with off-the-shelf OpenTelemetry OTLP/HTTP agents. Additionally, I don't believe the current version of the [NGINX OpenTelemetry module](https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx) supports bearer token authentication.
 
 # LICENSE
 
