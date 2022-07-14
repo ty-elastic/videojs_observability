@@ -1,0 +1,28 @@
+services:
+  player:
+    image: videojs_observability/player
+    build: .
+    ports:
+      - "8090:8090"
+    volumes:
+      - $PWD/src:/home/player/src:ro
+
+  collector:
+    image: videojs_observability/collector
+    build: ./collector
+    ports:
+      - "55690:55690"
+      - "4317:4317"
+    env_file:
+      - apm.env
+
+  nginx:
+    image: videojs_observability/nginx
+    build: ./nginx
+    ports:
+      - "8080:80"
+    links:
+      - collector
+      - player
+    volumes:
+      - $PWD/hls:/var/www/hls:ro

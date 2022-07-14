@@ -1,0 +1,39 @@
+extensions:
+  bearertokenauth/client:
+    token: "${ELASTIC_APM_SECRET_TOKEN}"
+    
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        cors:
+          allowed_origins:
+            - http://*
+            - https://*
+          allowed_headers:
+            - "*"
+          max_age: 7200
+        endpoint: 0.0.0.0:55690
+
+exporters:
+  logging:
+    loglevel: debug
+  otlp/elastic:
+    endpoint: "${ELASTIC_APM_SERVER_URL}"
+    auth:
+      authenticator: bearertokenauth/client
+
+service:
+  extensions: [bearertokenauth/client]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [logging, otlp/elastic]
+    metrics:
+      receivers: [otlp]
+      exporters: [logging, otlp/elastic]
+    logs: 
+      receivers: [otlp]
+      exporters: [logging, otlp/elastic]
