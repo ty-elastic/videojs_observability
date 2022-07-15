@@ -23,7 +23,7 @@ flowchart TB
     OTC == OTLP ==> EA[Elastic APM]
     end
     subgraph Frontend
-    Video.js == HLS ==> NGINX
+    Video.js == HLS+Context ==> NGINX
     Video.js == OTLP ==> OTC[OpenTelemetry Collector]
     end
 ```
@@ -34,6 +34,7 @@ flowchart TB
 
 1. [Install Docker](https://docs.docker.com/get-docker/)
 2. [Setup a (free) Elastic Cloud trial](https://cloud.elastic.co/) or, if you prefer, [download our docker images](https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html) to run an Elastic cluster locally
+    - If using Elastic Cloud, there are no specific requirements on the deployment (all deployments include the required Integration Server)
 3. Clone this repository
 
 ## Configuration & Build
@@ -164,7 +165,7 @@ sequenceDiagram
     loop Get ABR Segments
     P->>P: [Start Trace] GET
     activate P
-    P->>S: GET Segment / HTTPS
+    P->>S: GET Segment + Context/ HTTPS
     S->>S: [Start Trace] GET
     activate S
     S->>P: ABR Segment / HTTPS
