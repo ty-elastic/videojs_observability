@@ -112,7 +112,7 @@ In our trivial example, the services mapped out as expected. You can imagine cha
 
 <img src="img/trace.png"/>
 
-Our sample video is truncated to 30s, comprised of 3 ~10s segments. Note that we can easily visualize the timing of the individual Video.js ABR segment fetch operations (`HTTP GET`) as part of the overall `play` trace. Further, we chain tracing of the NGINX proxy operation for each segment as a child of each Video.js ABR segment fetch operation. Immediately we can see that (as expected), the vast majority of the latency in delivering ABR segments to the frontend is a function of our proxy operation.
+Our sample video is truncated to 30s, comprised of 3 ~10s segments. Note that we can easily visualize the timing of the individual Video.js ABR segment fetch operations (`HTTP GET`) as part of the overall `play` trace. Further, we see the ensuing NGINX proxy operation for each segment as a child of each Video.js ABR segment fetch operation. Immediately we can see that (as expected), the vast majority of the latency in delivering ABR segments to the frontend is a function of our proxy operation. Further, we can see that for a 30s playout, Video.js front-loaded the 3 segments. Obviously for a longer playout, we would expect staggered groupings of ABR segment fetch operations.
 
 ## Tracing / Maps
 
