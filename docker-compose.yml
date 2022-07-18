@@ -21,6 +21,7 @@ services:
     build: ./nginx
     ports:
       - "8080:80"
+    platform: "linux/amd64"
     links:
       - collector
       - player
