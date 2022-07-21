@@ -13,8 +13,8 @@ This is an exemplary project intended to showcase how:
 * [OpenTelemetry](https://opentelemetry.io) can be used to instrument existing frontend libraries or applications with metrics and tracing
 * OpenTelemetry can be used to instrument distributed tracing and metrics across frontend requests and backend services
 * Tracing, conceptually, can be used (abused?) in video players to observe end-to-end adaptive bitrate behavior (e.g., segment fetch) over the lifecycle of playback
-* OpenTelemetry can be practically used with frontend JavaScript, backend NGINX, and [Elasticsearch APM](https://www.elastic.co/observability/application-performance-monitoring) to instrument a real-world use case of moderate complexity
-* Use of a unified Tracing and Metrics observability solution (Elasticsearch APM) enables a wealth of rich visualization, machine learning, and alerting tools for observing user video playback
+* OpenTelemetry can be practically used with frontend JavaScript, backend NGINX, and [Elastic APM](https://www.elastic.co/observability/application-performance-monitoring) to instrument a real-world use case of moderate complexity
+* Use of a unified Tracing and Metrics observability solution (Elastic APM) enables a wealth of rich visualization, machine learning, and alerting tools for observing user video playback
 
 ```mermaid
 flowchart TB
